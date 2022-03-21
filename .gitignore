@@ -1,0 +1,10 @@
+env/
+.env/
+__pycache__/
+*.pyc
+*.pyd
+.idea/
+.vscode/
+cert/
+*.crt
+*.key
