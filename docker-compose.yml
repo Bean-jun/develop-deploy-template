@@ -14,9 +14,10 @@ services:
       - 5000:5000
   redis:
     image: redis:latest
+    build: db/redis
     restart: always
     volumes:
-      - .db/redis/redis.conf:/etc/redis/redis.conf:ro
+      - redis-data:/data
     command: redis-server /etc/redis/redis.conf
     ports:
       - 6379:6379
@@ -62,6 +63,7 @@ services:
 volumes:
   flaskapp-data:
   mysql-data:
+  redis-data:
   nginx-api-data:
   nginx-static-data:
 secrets:
