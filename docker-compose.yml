@@ -10,21 +10,29 @@ services:
       - redis
       - mysql
     restart: always
+    networks:
+      - redis_network
+      - db_network
+      - nginx_network
     ports:
       - 5000:5000
   redis:
     image: redis:latest
     build: db/redis
+    command: redis-server /etc/redis/redis.conf
     restart: always
     volumes:
       - redis-data:/data
-    command: redis-server /etc/redis/redis.conf
+    networks:
+      - redis_network
     ports:
       - 6379:6379
   mysql:
     image: mysql:8.0.27
     command: '--default-authentication-plugin=mysql_native_password'
     restart: always
+    env_file:
+      - ./db/mysql/mysql_env
     healthcheck:
       test:
         [ "CMD","mysqladmin","ping","-h","127.0.0.1","--silent" ]
@@ -33,11 +41,9 @@ services:
       start_period: 30s
     volumes:
       - mysql-data:/var/lib/mysql
-    secrets:
-      - db-password
-    environment:
-      - MYSQL_DATABASE=flasktemplate
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db-password
+      - ./db/mysql/init:/docker-entrypoint-initdb.d/  # 挂载数据初始化sql脚本
+    networks:
+      - db_network
     expose:
       - 3306
   APIProxy:
@@ -50,6 +56,8 @@ services:
       - 5100:80
     depends_on:
       - flaskapp
+    networks:
+      - nginx_network
   StaticProxy:
     image: staticproxy:latest
     build: nginx/StaticProxy
@@ -60,12 +68,18 @@ services:
       - 80:80
     depends_on:
       - APIProxy
+    networks:
+      - nginx_network
 volumes:
   flaskapp-data:
   mysql-data:
   redis-data:
   nginx-api-data:
   nginx-static-data:
-secrets:
-  db-password:
-    file: db/mysql/password.txt
+networks:
+  nginx_network:
+    driver: bridge
+  db_network:
+    driver: bridge
+  redis_network:
+    driver: bridge
